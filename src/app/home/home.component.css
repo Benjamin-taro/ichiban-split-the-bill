@@ -1,0 +1,52 @@
+
+/* コンポーネント全体にパディングをつける */
+:host {
+  display: block;
+  padding: 2rem;
+  font-family: sans-serif;
+  text-align: center;
+}
+
+/* ボタンの見た目調整 */
+.my-button {
+  background-color: var(--p-blue-500);
+  color: var(--p-surface-0);
+  margin: 1rem;
+}
+
+/* ファイルアップロードと画像の間にスペース */
+p-fileupload {
+  display: block;
+  margin: 1.5rem auto;
+}
+
+/* アップロードボタンもスペース付きで中央に */
+p-button[severity="secondary"] {
+  margin-bottom: 1.5rem;
+}
+
+p-skeleton {
+  margin: 1.5rem auto;
+  display: block;
+  width: 50rem; /* スケルトンの幅を指定 */
+  height: 10rem; /* スケルトンの高さを指定 */
+}
+
+/* 画像の見た目と余白調整 */
+p-image {
+  display: block;
+  margin: 1.5rem auto;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+}
+
+/* リンクの見た目をボタン風にする */
+a {
+  display: inline-block;
+  margin-top: 2rem;
+  text-decoration: none;
+  background-color: var(--p-primary-color);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+}

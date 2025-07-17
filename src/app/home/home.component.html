@@ -1,3 +1,33 @@
 <p>Ichiban Split the Bill</p>
-<p-button label="Click me"></p-button>
-<a routerLink="/split-view">Reviewページへ</a>
+<p>Please upload an image of the receipt.</p>
+
+<p-fileupload
+  #fu
+  mode="basic"
+  chooseLabel="Choose"
+  chooseIcon="pi pi-upload"
+  name="demo[]"
+  url="https://www.primefaces.org/cdn/api/upload.php"
+  accept="image/*"
+  maxFileSize="1000000"
+  (onSelect)="onSelect($event)"
+  (onUpload)="onUpload($event)"
+/>
+
+<!-- スケルトン表示中 -->
+<p-skeleton *ngIf="loading" width="250px" height="250px" borderRadius="8px" />
+
+<!-- 読み込み済みの画像 -->
+<p-image
+  *ngIf="uploadedImageUrl && !loading"
+  [src]="uploadedImageUrl"
+  alt="Uploaded Image"
+  width="250"
+/>
+
+<!-- home.component.html （routerLink を外す）-->
+<p-button
+  label="Upload"
+  (click)="uploadManually()"
+  severity="secondary">
+</p-button>
