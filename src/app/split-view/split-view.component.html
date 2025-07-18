@@ -1,1 +1,84 @@
-<p>split-view works!</p>
+<h2>Let's Split the Bill by Item</h2>
+
+
+<p>Please enter the number of customers</p>
+<p-inputnumber
+  inputId="integeronly"
+  [(ngModel)]="numberOfCustomers"
+  [min]="1"
+  [max]="50"
+  (onBlur)="updateCustomerColumns()"
+/>
+
+<p-table [value]="orders[0]?.items" [tableStyle]="{ 'min-width': '50rem' }" editable="true">
+  <ng-template pTemplate="header">
+    <tr>
+      <th>Item</th>
+      <th>Price per Item (£)</th>
+      <th>Quantity</th>
+      <th *ngFor="let customer of customerLabels">{{ customer }}</th>
+    </tr>
+  </ng-template>
+  
+  <ng-template pTemplate="body" let-rowData let-editing="editing" let-ri="rowIndex">
+    <tr>
+      <!-- Item name -->
+      <td>{{ rowData.name }}</td>
+      <!-- Price -->
+      <td>£{{ rowData.price }}</td>
+      <!-- Quantity -->
+      <td>{{ rowData.quantity }}</td>
+      <td *ngFor="let customer of customerLabels; let ci = index" style="width: 50px;">
+      <input
+        type="number"
+        [(ngModel)]="rowData.customers[ci]"
+        [min]="0"
+        [max]="getMaxAssignable(rowData, ci)"
+        (ngModelChange)="handleQuantityChange(rowData)"
+        style="width: 3em"
+      />
+      </td>
+    </tr>
+  </ng-template>
+</p-table>
+
+<h1>Total: {{ calcTotal() | currency:'GBP' }}</h1>
+
+<div *ngIf="orders[0]">
+  <p-checkbox
+    [(ngModel)]="orders[0].service_charge_10_percent"
+    binary="true"
+    inputId="sc"
+    (onChange)="updateSubtotals()"
+  ></p-checkbox>
+  <label for="sc" style="margin-left: 0.5rem;">Include 10% Service Charge</label>
+</div>
+
+<h3>Subtotal for Each Customer (£):</h3>
+<ul>
+  <li *ngFor="let customer of customerLabels; let i = index">
+    {{ customer }}: £{{ subtotals[i] || 0 }}
+  </li>
+</ul>
+
+<p-button
+  label="Restart the Process"
+  severity="secondary"
+  routerLink="/"
+  type="button"
+></p-button>
+
+<p-button
+  label="Back to Review"
+  severity="secondary"
+  routerLink="/review"
+  type="button"
+></p-button>
+
+<p-button
+  label="Finish the Payment"
+  severity="secondary"
+  routerLink="/"
+  type="button"
+></p-button>
+

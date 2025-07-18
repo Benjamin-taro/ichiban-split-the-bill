@@ -82,6 +82,14 @@
 
 <h1>Total: {{ calcTotal() | currency:'GBP' }}</h1>
 
+<div *ngIf="orders[0]">
+  <p-checkbox
+    [(ngModel)]="orders[0].service_charge_10_percent"
+    binary="true"
+    inputId="sc"
+  ></p-checkbox>
+  <label for="sc" style="margin-left: 0.5rem;">Include 10% Service Charge</label>
+</div>
 
 <p-button
   label="Back to Home"

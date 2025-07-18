@@ -14,10 +14,32 @@
         "price": 9,
         "valid": false,
         "expectedPrice": 9.5
+      },
+      {
+        "name": "Sushi Platter",
+        "quantity": 1,
+        "price": 12,
+        "valid": true,
+        "expectedPrice": 12
+      },
+      {
+        "name": "Miso Soup",
+        "quantity": 3,
+        "price": 2.5,
+        "valid": true,
+        "expectedPrice": 7.5
+      },
+      {
+        "name": "Asahi 500ml",
+        "quantity": 5,
+        "price": 6.5,
+        "valid": false,
+        "expectedPrice": 9.5
       }
+
     ],
     "total": 16.5,
-    "service_charge_10_percent": false
+    "service_charge_10_percent": true
   }
 ]
 
