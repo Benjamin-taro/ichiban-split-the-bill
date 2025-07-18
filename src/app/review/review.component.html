@@ -46,7 +46,7 @@
       <td pEditableColumn>
         <p-cellEditor>
           <ng-template pTemplate="input">
-            <p-inputNumber [(ngModel)]="rowData.quantity" [min]="1" [max]="10" />
+            <p-inputNumber [(ngModel)]="rowData.quantity" [min]="1" [max]="100" />
           </ng-template>
           <ng-template pTemplate="output">
             {{ rowData.quantity }}
