@@ -64,6 +64,20 @@ export class ReviewComponent implements OnInit {
     }, 0);
   }
 
+  addRow() {
+    this.orders[0]?.items.push({
+      name: 'hello ichiban!!',
+      quantity: 1,
+      price: 0,
+      valid: true,
+      expectedPrice: 0
+    });
+  }
+
+  removeRow(index: number) {
+    this.orders[0]?.items.splice(index, 1);
+  }
+
 }
 
 
