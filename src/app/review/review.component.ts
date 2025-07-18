@@ -17,8 +17,32 @@ import { log } from 'console';
   styleUrls: ['./review.component.css']
 })
 
-export class ReviewComponent {
-
+export class ReviewComponent implements OnInit {
+  orders: any[] = [];
+  ngOnInit() {
+    this.orders = [
+      {
+        "items": [
+                {
+                  "name": "Orange Juice",
+                  "quantity": 2,
+                  "price": 3.5,
+                  "valid": true,
+                  "expectedPrice": 3.5
+                },
+                {
+                  "name": "Yasai Chahan",
+                  "quantity": 1,
+                  "price": 9,
+                  "valid": false,
+                  "expectedPrice": 9.5
+                }
+              ],
+              "total": 16.5,
+              "service_charge_10_percent": false
+      }
+    ];
+  }
 }
 
 

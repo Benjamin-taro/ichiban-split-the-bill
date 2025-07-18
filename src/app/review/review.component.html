@@ -7,10 +7,36 @@
   width="250"
 />
 
+<p-table [value]="orders[0]?.items" [tableStyle]="{ 'min-width': '50rem' }">
+  <ng-template pTemplate="header">
+    <tr>
+      <th>Item</th>
+      <th>Price per Item (£)</th>
+      <th>Quantity</th>
+    </tr>
+  </ng-template>
+  <ng-template pTemplate="body" let-item>
+    <tr>
+      <td>{{ item.name }}</td>
+      <td>{{ item.price }}</td>
+      <td>{{ item.quantity }}</td>
+    </tr>
+  </ng-template>
+</p-table>
+
+<h1>Total: {{ orders[0]?.total | currency:'GBP' }}</h1>
+
 
 <p-button
   label="Back to Home"
   severity="secondary"
   routerLink="/"
+  type="button"
+></p-button>
+
+<p-button
+  label="Let's Split the Bill"
+  severity="secondary"
+  routerLink="/split-view"
   type="button"
 ></p-button>
