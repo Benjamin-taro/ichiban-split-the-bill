@@ -2,12 +2,12 @@
 <h2>This is the review page</h2>
 
 <p-image
-  src="https://primefaces.org/cdn/primeng/images/galleria/galleria10.jpg"
+  src="assets/IMG_0675.JPG"
   alt="Image"
   width="250"
 />
 
-<p-table [value]="orders[0]?.items" [tableStyle]="{ 'min-width': '50rem' }">
+<p-table [value]="orders[0]?.items" [tableStyle]="{ 'min-width': '50rem' }" editable="true">
   <ng-template pTemplate="header">
     <tr>
       <th>Item</th>
@@ -15,16 +15,50 @@
       <th>Quantity</th>
     </tr>
   </ng-template>
-  <ng-template pTemplate="body" let-item>
+  
+  <ng-template pTemplate="body" let-rowData let-editing="editing" let-ri="rowIndex">
     <tr>
-      <td>{{ item.name }}</td>
-      <td>{{ item.price }}</td>
-      <td>{{ item.quantity }}</td>
+      <!-- Item name -->
+      <td pEditableColumn>
+        <p-cellEditor>
+          <ng-template pTemplate="input">
+            <input pInputText [(ngModel)]="rowData.name" />
+          </ng-template>
+          <ng-template pTemplate="output">
+            {{ rowData.name }}
+          </ng-template>
+        </p-cellEditor>
+      </td>
+
+      <!-- Price -->
+      <td pEditableColumn>
+        <p-cellEditor>
+          <ng-template pTemplate="input">
+            <p-inputNumber [(ngModel)]="rowData.price" [mode]="'decimal'" [minFractionDigits]="2" [maxFractionDigits]="2" [prefix]="'£'" />
+          </ng-template>
+          <ng-template pTemplate="output">
+            £{{ rowData.price }}
+          </ng-template>
+        </p-cellEditor>
+      </td>
+
+      <!-- Quantity -->
+      <td pEditableColumn>
+        <p-cellEditor>
+          <ng-template pTemplate="input">
+            <p-inputNumber [(ngModel)]="rowData.quantity" [min]="1" [max]="10" />
+          </ng-template>
+          <ng-template pTemplate="output">
+            {{ rowData.quantity }}
+          </ng-template>
+        </p-cellEditor>
+      </td>
     </tr>
   </ng-template>
 </p-table>
 
-<h1>Total: {{ orders[0]?.total | currency:'GBP' }}</h1>
+
+<h1>Total: {{ calcTotal() | currency:'GBP' }}</h1>
 
 
 <p-button
