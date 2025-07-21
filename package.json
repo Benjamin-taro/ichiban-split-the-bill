@@ -4,7 +4,7 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
-    "build": "ng build",
+    "build": "ng build --configuration production --skip-prerender",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "serve:ssr:ichiban-split-the-bill": "node dist/ichiban-split-the-bill/server/server.mjs"
