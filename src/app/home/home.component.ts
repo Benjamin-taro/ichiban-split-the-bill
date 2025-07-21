@@ -62,7 +62,7 @@ export class HomeComponent {
                     this.loading = false;
                     setTimeout(() => {
                         this.router.navigate(['/review']);
-                    }, 5000); // ← ミリ秒なので5000で5秒
+                    }, 10000); 
                 },
                 error: err => {
                     console.error('Upload failed', err);
@@ -74,9 +74,11 @@ export class HomeComponent {
     // home.component.ts に追加
     uploadManually() {
         this.onUpload(null);  // 明示的に手動で呼び出す
+        /*
         this.router.navigate(['/review']).then(success => {
             console.log('Navigation result:', success);
         });
+        */
     }
 
 }
