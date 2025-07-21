@@ -26,7 +26,7 @@ import { CheckboxModule } from 'primeng/checkbox';
 export class ReviewComponent implements OnInit {
   orders: any[] = [];
   constructor(private http: HttpClient, private orderService: OrderService) {}
-  
+  checked: boolean = false;
 
   ngOnInit() {
     /*this.orders = [
@@ -52,7 +52,16 @@ export class ReviewComponent implements OnInit {
       }
     ];*/
       this.orders = this.orderService.getOrders();
-
+      if (!this.orders || this.orders.length === 0) {
+        this.orders = [{
+          items: [],
+          total: 0,
+          service_charge_10_percent: false
+        }];
+      } else if (this.orders[0].service_charge_10_percent === undefined) {
+        this.orders[0].service_charge_10_percent = false;
+      }
+      
       if (!this.orders || this.orders.length === 0) {
         console.warn('No order data available!');
       } else {
@@ -97,9 +106,14 @@ export class ReviewComponent implements OnInit {
   }
 
   saveToLocalStorage() {
-    localStorage.setItem('orders', JSON.stringify(this.orders));
-    console.log('Saved to localStorage:', this.orders);
+    if (typeof window !== 'undefined' && localStorage) {
+      localStorage.setItem('orders', JSON.stringify(this.orders));
+      console.log('Saved to localStorage:', this.orders);
+    } else {
+      console.warn('localStorage is not available (likely SSR environment)');
+    }
   }
+
 
 
 }
