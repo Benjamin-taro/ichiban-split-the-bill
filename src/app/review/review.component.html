@@ -1,11 +1,7 @@
 <!-- review.component.html -->
 <h2>This is the review page</h2>
 
-<p-image
-  src="assets/IMG_0675.JPG"
-  alt="Image"
-  width="250"
-/>
+
 
 <p-table [value]="orders[0]?.items" [tableStyle]="{ 'min-width': '50rem' }" editable="true">
   <ng-template pTemplate="header">
@@ -102,5 +98,6 @@
   label="Let's Split the Bill"
   severity="secondary"
   routerLink="/split-view"
+  (click)="saveToLocalStorage()"
   type="button"
 ></p-button>

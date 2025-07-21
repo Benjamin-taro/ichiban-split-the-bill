@@ -27,10 +27,18 @@ export class SplitViewComponent implements OnInit {
   constructor(private orderService: OrderService) {}
 
   ngOnInit() {
-    this.orders = this.orderService.getOrders();
-    this.updateCustomerColumns(); // ← ここを追加
+    const savedOrders = localStorage.getItem('orders');
+    if (savedOrders) {
+      this.orders = JSON.parse(savedOrders);
+      console.log('Loaded orders from localStorage:', this.orders);
+    } else {
+      this.orders = this.orderService.getOrders();  // フォールバック
+      console.warn('No localStorage orders found, falling back to service.');
+    }
 
+    this.updateCustomerColumns();
   }
+
   updateCustomerColumns() {
     // カスタマー列ラベル更新
     this.customerLabels = Array.from({ length: this.numberOfCustomers }, (_, i) => `C${i + 1}`);

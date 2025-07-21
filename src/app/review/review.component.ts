@@ -51,19 +51,17 @@ export class ReviewComponent implements OnInit {
               "service_charge_10_percent": false
       }
     ];*/
-    this.http.get<any[]>('assets/dummy_order.json').subscribe({
-      next: (data) => {
-        this.orders = data;
-        this.orderService.setOrders(data);
-      },
-      error: (err) => {
-        console.error('Failed to load order data:', err);
+      this.orders = this.orderService.getOrders();
+
+      if (!this.orders || this.orders.length === 0) {
+        console.warn('No order data available!');
+      } else {
+        console.log('Loaded orders from service:', this.orders);
       }
-    });
   }
   calcTotal(): number {
     const items: { price: number; quantity: number }[] = this.orders[0]?.items || [];
-
+    this.saveToLocalStorage();
     const total = items.reduce((sum: number, item: { price: number; quantity: number }) => {
       return sum + item.price * item.quantity;
     }, 0);
@@ -88,6 +86,12 @@ export class ReviewComponent implements OnInit {
   removeRow(index: number) {
     this.orders[0]?.items.splice(index, 1);
   }
+
+  saveToLocalStorage() {
+    localStorage.setItem('orders', JSON.stringify(this.orders));
+    console.log('Saved to localStorage:', this.orders);
+  }
+
 
 }
 

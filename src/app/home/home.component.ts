@@ -8,6 +8,7 @@ import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
+import { OrderService } from '../shared/order.service';
 
 @Component({
     selector: 'app-home',
@@ -18,11 +19,12 @@ import { Router } from '@angular/router';
 })
 export class HomeComponent {
     private router = inject(Router);
+    private http = inject(HttpClient);
     loading = false;
     uploadedImageUrl: string | undefined = undefined;
     SelectedFile: File | null = null;
-    http = inject(HttpClient);
 
+    constructor(private orderService: OrderService) {}
 
   onSelect(event: any) {
     this.loading = true;
@@ -40,26 +42,35 @@ export class HomeComponent {
     }
   }
 
-  onUpload(event: any) {
-        if (!this.SelectedFile) return;
+    onUpload(event: any) {
+        console.log('Upload triggered. SelectedFile:', this.SelectedFile);
+
+        if (!this.SelectedFile) {
+            console.warn('No file selected!');
+            return;
+        }
+        
         const formData = new FormData();
         formData.append('file', this.SelectedFile);
         this.loading = true;
 
-        this.http.post<{ imageUrl: string }>('https://your-api.com/upload', formData)
-        .subscribe({
-            next: res => {
-            this.uploadedImageUrl = res.imageUrl;
-            this.loading = false;
-            /** ← アップロード成功後に review へ */
-            this.router.navigate(['/review']);
-            },
-            error: err => {
-            console.error('Upload failed', err);
-            this.loading = false;
-            }
-        });
+        this.http.post<any>('https://receipt-splitter-backend-xncr.onrender.com/extract', formData)
+            .subscribe({
+                next: res => {
+                    this.orderService.setOrders([res]);
+                    console.log('Server response:', res);
+                    this.loading = false;
+                    setTimeout(() => {
+                        this.router.navigate(['/review']);
+                    }, 5000); // ← ミリ秒なので5000で5秒
+                },
+                error: err => {
+                    console.error('Upload failed', err);
+                    this.loading = false;
+                }
+            });
     }
+
     // home.component.ts に追加
     uploadManually() {
         this.onUpload(null);  // 明示的に手動で呼び出す
