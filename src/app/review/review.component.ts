@@ -74,7 +74,15 @@ export class ReviewComponent implements OnInit {
 
 
   addRow() {
-    this.orders[0]?.items.push({
+    if (!this.orders || this.orders.length === 0) {
+      this.orders = [{
+        items: [],
+        total: 0,
+        service_charge_10_percent: false
+      }];
+    }
+
+    this.orders[0].items.push({
       name: 'hello ichiban!!',
       quantity: 1,
       price: 0,
@@ -82,6 +90,7 @@ export class ReviewComponent implements OnInit {
       expectedPrice: 0
     });
   }
+
 
   removeRow(index: number) {
     this.orders[0]?.items.splice(index, 1);
