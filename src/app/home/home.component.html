@@ -13,20 +13,19 @@
   (onSelect)="onSelect($event)"
 />
 
-<!-- スケルトン表示中 -->
-<p-skeleton *ngIf="loading" width="250px" height="250px" borderRadius="8px" />
+<!-- スケルトン表示中（画像読み込み時） -->
+<p-skeleton *ngIf="loadingImage" width="250px" height="250px" borderRadius="8px" />
 
-<!-- 読み込み済みの画像 -->
-<p-image
-  *ngIf="uploadedImageUrl && !loading"
-  [src]="uploadedImageUrl"
-  alt="Uploaded Image"
-  width="250"
-/>
+<!-- 読み込み済み画像 -->
+<p-image *ngIf="uploadedImageUrl && !loadingImage && !uploading" [src]="uploadedImageUrl" alt="Uploaded Image" width="250" />
 
-<!-- home.component.html （routerLink を外す）-->
+
+<p-cascadeselect *ngIf="loadingImage || uploading" [loading]="true" [style]="{ minWidth: '14rem' }" placeholder="Loading..." />
+
+<!-- アップロードボタン -->
 <p-button
   label="Upload"
   (click)="uploadManually()"
-  severity="secondary">
-</p-button>
+  severity="secondary"
+  [disabled]="!SelectedFile || uploading"
+/>

@@ -9,38 +9,42 @@ import { HttpClient } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { OrderService } from '../shared/order.service';
+import { CascadeSelectModule } from 'primeng/cascadeselect';
 
 @Component({
     selector: 'app-home',
     standalone: true,
     templateUrl: './home.component.html',
     styleUrls: ['./home.component.css'],
-    imports: [ButtonModule, RouterModule, FileUploadModule, ImageModule, SkeletonModule, CommonModule],
+    imports: [ButtonModule, RouterModule, FileUploadModule, ImageModule, SkeletonModule, CommonModule, CascadeSelectModule],
 })
 export class HomeComponent {
     private router = inject(Router);
     private http = inject(HttpClient);
     loading = false;
+    loadingImage = false;
+    uploading = false;
     uploadedImageUrl: string | undefined = undefined;
     SelectedFile: File | null = null;
 
     constructor(private orderService: OrderService) {}
 
   onSelect(event: any) {
-    this.loading = true;
+    this.loadingImage = true;
     const file = event.files?.[0];
 
     if (file) {
-      this.SelectedFile = file;
-      
-      const reader = new FileReader();
-      reader.onload = () => {
+        this.SelectedFile = file;
+        
+        const reader = new FileReader();
+        reader.onload = () => {
         this.uploadedImageUrl = reader.result as string;
-        this.loading = false;
-      };
-      reader.readAsDataURL(file);
+        this.loadingImage = false;
+        };
+        reader.readAsDataURL(file);
     }
-  }
+    }
+
 
     onUpload(event: any) {
         console.log('Upload triggered. SelectedFile:', this.SelectedFile);
@@ -52,21 +56,22 @@ export class HomeComponent {
         
         const formData = new FormData();
         formData.append('file', this.SelectedFile);
-        this.loading = true;
+        this.uploading = true;
 
         this.http.post<any>('https://receipt-splitter-backend-xncr.onrender.com/extract', formData)
             .subscribe({
                 next: res => {
                     this.orderService.setOrders([res]);
                     console.log('Server response:', res);
-                    this.loading = false;
+                    this.uploadedImageUrl = undefined;
                     setTimeout(() => {
+                        this.uploading = false;
                         this.router.navigate(['/review']);
                     }, 10000); 
                 },
                 error: err => {
                     console.error('Upload failed', err);
-                    this.loading = false;
+                    this.uploading = false;
                 }
             });
     }
