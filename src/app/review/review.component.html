@@ -2,7 +2,7 @@
 <h2>This is the review page</h2>
 
 
-<p-table [value]="orders[0]?.items" [tableStyle]="{ 'min-width': '50rem' }" editable="true">
+<p-table *ngIf="orders[0]?.items" [value]="orders[0]?.items" [tableStyle]="{ 'min-width': '50rem' }" editable="true">
   <ng-template pTemplate="header">
     <tr>
       <th>Item</th>

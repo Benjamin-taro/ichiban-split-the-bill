@@ -51,6 +51,14 @@ export class ReviewComponent implements OnInit {
               "service_charge_10_percent": false
       }
     ];*/
+      if (typeof window !== 'undefined') {
+        const reloaded = localStorage.getItem('review-page-reloaded');
+        if (!reloaded) {
+          localStorage.setItem('review-page-reloaded', 'true');
+          location.reload(); // 強制リロード
+          return; // ここで止めておく
+        }
+      }
       this.orders = this.orderService.getOrders();
       if (!this.orders || this.orders.length === 0) {
         this.orders = [{
@@ -61,7 +69,7 @@ export class ReviewComponent implements OnInit {
       } else if (this.orders[0].service_charge_10_percent === undefined) {
         this.orders[0].service_charge_10_percent = false;
       }
-      
+
       if (!this.orders || this.orders.length === 0) {
         console.warn('No order data available!');
       } else {
