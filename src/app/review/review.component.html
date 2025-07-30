@@ -18,7 +18,7 @@
       <td pEditableColumn>
         <p-cellEditor>
           <ng-template pTemplate="input">
-            <input pInputText [(ngModel)]="rowData.name" />
+            <input pInputText [(ngModel)]="rowData.name" (ngModelChange)="updatePriceForItem(ri)" />
           </ng-template>
           <ng-template pTemplate="output">
             {{ rowData.name }}

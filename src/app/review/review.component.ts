@@ -12,6 +12,8 @@ import { InputNumberModule } from 'primeng/inputnumber';
 import { FormsModule } from '@angular/forms';
 import { OrderService } from '../shared/order.service';
 import { CheckboxModule } from 'primeng/checkbox';
+import { firstValueFrom } from 'rxjs';
+import { environment } from '../../environments/environment'; // 環境変数のインポート
 
 
 
@@ -25,32 +27,11 @@ import { CheckboxModule } from 'primeng/checkbox';
 
 export class ReviewComponent implements OnInit {
   orders: any[] = [];
+  private menuMap = new Map<string, number>();
   constructor(private http: HttpClient, private orderService: OrderService) {}
   checked: boolean = false;
 
   ngOnInit() {
-    /*this.orders = [
-      {
-        "items": [
-                {
-                  "name": "Orange Juice",
-                  "quantity": 2,
-                  "price": 3.5,
-                  "valid": true,
-                  "expectedPrice": 3.5
-                },
-                {
-                  "name": "Yasai Chahan",
-                  "quantity": 1,
-                  "price": 9,
-                  "valid": false,
-                  "expectedPrice": 9.5
-                }
-              ],
-              "total": 16.5,
-              "service_charge_10_percent": false
-      }
-    ];*/
       if (typeof window !== 'undefined') {
         const reloaded = localStorage.getItem('review-page-reloaded');
         if (!reloaded) {
@@ -70,12 +51,79 @@ export class ReviewComponent implements OnInit {
         this.orders[0].service_charge_10_percent = false;
       }
 
+      this.loadMenuJson().then(() => {
+          this.updatePricesFromMenu();
+      });
+
       if (!this.orders || this.orders.length === 0) {
         console.warn('No order data available!');
       } else {
         console.log('Loaded orders from service:', this.orders);
       }
   }
+  private normalize(s: any): string {
+    return String(s ?? '')
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, ' ');
+  }
+
+  private async loadMenuJson(): Promise<void> {
+    const url = `${environment.apiBaseUrl}/menu.json`;
+    let mapping: Record<string, number> | null = null;
+
+    try {
+      mapping = await firstValueFrom(
+        this.http.get<Record<string, number>>(url)
+      );
+    } catch (e) {
+      console.warn('[menu] API取得に失敗。assets/menu.json にフォールバックします。', e);
+      try {
+        mapping = await firstValueFrom(
+          this.http.get<Record<string, number>>('assets/menu.json')
+        );
+      } catch (e2) {
+        console.error('[menu] フォールバックも失敗', e2);
+        mapping = {};
+      }
+    }
+
+    this.menuMap.clear();
+    for (const [k, v] of Object.entries(mapping ?? {})) {
+      this.menuMap.set(this.normalize(k), v as number);
+    }
+  }
+
+// 全件更新（ngOnInit から呼ぶ）
+  private updatePricesFromMenu(): void {
+    const items = this.orders[0]?.items || [];
+    for (const it of items) this.applyMenuPrice(it);
+    this.saveToLocalStorage();
+  }
+
+  // 1行だけ更新（編集時に呼ぶ）
+  updatePriceForItem(index: number): void {
+    const it = this.orders[0]?.items?.[index];
+    if (!it) return;
+    this.applyMenuPrice(it);
+    this.saveToLocalStorage();
+  }
+
+  // 共通ロジック
+  private applyMenuPrice(it: any) {
+    const key = this.normalize(it.name);
+    const menuPrice = this.menuMap.get(key);
+    console.log('[name edit]', it.name, '->', key, 'found:', menuPrice);
+    if (menuPrice !== undefined) {
+      it.price = menuPrice;
+      it.expectedPrice = menuPrice;
+      it.valid = true;
+    } else {
+      it.valid = false;
+    }
+  }
+
+
   calcTotal(): number {
     const items: { price: number; quantity: number }[] = this.orders[0]?.items || [];
     this.saveToLocalStorage();
