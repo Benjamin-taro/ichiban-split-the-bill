@@ -32,7 +32,7 @@
   </ng-template>
   
   <ng-template pTemplate="body" let-rowData let-editing="editing" let-ri="rowIndex">
-    <tr>
+    <tr class="row-clickable" (click)="openAllocation(rowData, ri)" [ngClass]="rowClass(rowData)">
       <!-- Item name -->
       <td>{{ rowData.name }}</td>
       <!-- Quantity -->
@@ -46,9 +46,11 @@
         type="number"
         [(ngModel)]="rowData.customers[ci]"
         [min]="0"
+        [step]="0.01"
         [max]="getMaxAssignable(rowData, ci)"
         (ngModelChange)="handleQuantityChange(rowData)"
         style="width: 3em"
+        (click)="$event.stopPropagation()"
       />
       </td>
     </tr>
@@ -86,4 +88,71 @@ label="Restart the Process"
   routerLink="/"
   type="button"
 ></p-button>
+
+<p-dialog
+  header="Allocate: {{ selectedItemIndex!==null ? orders[0]?.items[selectedItemIndex]?.name : '' }}"
+  [(visible)]="allocationDialogVisible"
+  [modal]="true"
+  [dismissableMask]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [style]="{ width: 'min(92vw, 640px)' }"
+  (onHide)="cancelAllocation()"
+>
+  <!-- モード切替（任意だが分かりやすい） -->
+  <div class="mode-row">
+    <button
+      pButton type="button" label="Even split"
+      [severity]="allocationMode==='auto' ? 'primary' : 'secondary'"
+      (click)="setMode('auto')">
+    </button>
+    <button
+      pButton type="button" label="Custom"
+      [severity]="allocationMode==='custom' ? 'primary' : 'secondary'"
+      (click)="setMode('custom')">
+    </button>
+    <span class="mode-hint" *ngIf="allocationMode==='auto'">Toggle who pays; amounts are split evenly.</span>
+    <span class="mode-hint" *ngIf="allocationMode==='custom'">Edit numbers freely (sum ≤ quantity).</span>
+  </div>
+
+  <!-- 顧客チップ（ON/OFF） -->
+  <div class="chip-row" *ngIf="allocationMode==='auto'">
+    <button
+      pButton
+      *ngFor="let customer of customerLabels; let ci = index"
+      [label]="customer"
+      (click)="toggleCustomer(ci)"
+      [ngClass]="selected[ci] ? 'chip-on' : 'chip-off'">
+    </button>
+    <button pButton label="Select All"
+          class="p-button-sm p-button-secondary"
+          (click)="selectAll()"></button>
+
+    <button pButton label="Unselect All"
+            class="p-button-sm p-button-secondary"
+            (click)="unselectAll()"></button>
+  </div>
+
+  <!-- 数量入力（customでもautoでも表示。入力したらcustomへ） -->
+  <div class="alloc-grid">
+    <div class="alloc-row" *ngFor="let customer of customerLabels; let ci = index">
+      <span class="alloc-name">{{ customer }}</span>
+      <p-inputNumber
+        [(ngModel)]="editingCustomers[ci]"
+        [min]="0"
+        [max]="getMaxAssignableForDialog(ci)"
+        [showButtons]="true"
+        [step]="0.01"
+        [useGrouping]="false"
+        inputStyleClass="alloc-input"
+        (ngModelChange)="onDialogInputChange(ci)">
+      </p-inputNumber>
+    </div>
+  </div>
+
+  <ng-template pTemplate="footer">
+    <button pButton type="button" label="Cancel" class="p-button-text" (click)="cancelAllocation()"></button>
+    <button pButton type="button" label="Save" (click)="saveAllocation()"></button>
+  </ng-template>
+</p-dialog>
 

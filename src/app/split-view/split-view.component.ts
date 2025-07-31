@@ -8,11 +8,12 @@ import { InputNumberModule } from 'primeng/inputnumber';
 import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
 import { CheckboxModule } from 'primeng/checkbox';
+import { DialogModule } from 'primeng/dialog';
 
 
 @Component({
   selector: 'app-split-view',
-  imports: [CommonModule, RouterModule, ButtonModule, InputTextModule, InputNumberModule, FormsModule, TableModule, CheckboxModule],
+  imports: [CommonModule, RouterModule, ButtonModule, InputTextModule, InputNumberModule, FormsModule, TableModule, CheckboxModule, DialogModule],
   standalone: true,
   templateUrl: './split-view.component.html',
   styleUrl: './split-view.component.css'
@@ -24,8 +25,173 @@ export class SplitViewComponent implements OnInit {
   checked: boolean = false;
   subtotals: number[] = [];
 
-  constructor(private orderService: OrderService) {}
+  // --- 追加：割り振りダイアログ用の状態 ---
+  allocationDialogVisible = false;
+  selectedItemIndex: number | null = null;
+  editingCustomers: number[] = []; // ダイアログ内で編集する一時配列
+  allocationMode: 'auto' | 'custom' = 'auto';
+  selected: boolean[] = []; // 各カスタマーのON/OFF
 
+  // 行クリック：モーダルを開く（既存）
+  openAllocation(item: any, index: number) {
+    this.selectedItemIndex = index;
+
+    const n = this.numberOfCustomers;
+    const current = Array.isArray(item.customers) ? item.customers : [];
+    this.editingCustomers = Array.from({ length: n }, (_, i) => Number(current[i]) || 0);
+
+    /* ここだけ修正 */
+    this.selected = Array(n).fill(false);
+    current.forEach((v: number, i: number) => {   // ★ 型注釈を追加
+      if (Number(v) > 0) this.selected[i] = true;
+    });
+
+    this.allocationMode = 'auto';
+    if (this.selected.some(s => s)) {
+      this.recomputeEvenSplit();
+    }
+
+    this.allocationDialogVisible = true;
+  }
+
+
+  // モード切替（ボタン/自動）
+  setMode(mode: 'auto' | 'custom') {
+    this.allocationMode = mode;
+    if (mode === 'auto') this.recomputeEvenSplit();
+  }
+
+  /** すべて ON（選択） */
+  selectAll() {
+    const n = this.numberOfCustomers;
+    this.selected = Array(n).fill(true);
+
+    if (this.allocationMode === 'auto') {
+      // 均等割りを再計算
+      this.recomputeEvenSplit();
+    } else {
+      // custom モードなら保持している数量をそのまま使う
+      // まだ 0 の場合はとりあえず 0 のままで OK
+    }
+  }
+
+  /** すべて OFF（非選択） */
+  unselectAll() {
+    const n = this.numberOfCustomers;
+    this.selected = Array(n).fill(false);
+    this.editingCustomers = Array(n).fill(0); // 数量も 0 に
+
+    // auto／custom どちらでも数量は 0 のまま
+  }
+
+
+  // チップ（顧客）のON/OFF
+  toggleCustomer(ci: number) {
+    this.selected[ci] = !this.selected[ci];
+    if (this.allocationMode === 'auto') {
+      this.recomputeEvenSplit();
+    } else {
+      // custom時はOFFにしたらその人の数を0に
+      if (!this.selected[ci]) this.editingCustomers[ci] = 0;
+    }
+  }
+
+  private recomputeEvenSplit() {
+    if (this.selectedItemIndex == null) return;
+    const row = this.orders[0]?.items?.[this.selectedItemIndex];
+    if (!row) return;
+
+    const q = Number(row.quantity) || 0;
+    const onIdx = this.selected.map((v, i) => v ? i : -1).filter(i => i >= 0);
+    if (q <= 0 || onIdx.length === 0) {
+      this.editingCustomers.fill(0);
+      return;
+    }
+
+    // 小数点2桁で均等割り
+    const raw = q / onIdx.length;                // e.g. 2 / 4 = 0.5
+    const even = Math.floor(raw * 100) / 100;    // 0.5 を 2桁固定
+    const totalEven = even * onIdx.length;
+    let diff = Math.round((q - totalEven) * 100) / 100; // 誤差（0〜0.99）
+
+    // 反映
+    this.editingCustomers.fill(0);
+    onIdx.forEach(i => {
+      this.editingCustomers[i] = even;
+      if (diff > 0) {
+        // 0.01 ずつ余りを配分
+        const add = Math.min(diff, 0.01);
+        this.editingCustomers[i] = Math.round((even + add) * 100) / 100;
+        diff = Math.round((diff - add) * 100) / 100;
+      }
+    });
+  }
+
+
+  // 入力を手で変えたら custom に移行＆上限を守る
+  onDialogInputChange(ci: number) {
+    this.allocationMode = 'custom';
+    if (this.selectedItemIndex == null) return;
+    const row = this.orders[0]?.items?.[this.selectedItemIndex];
+    if (!row) return;
+
+    // 入力が0ならOFF、>0ならON
+    const v = Number(this.editingCustomers[ci]) || 0;
+    this.selected[ci] = v > 0;
+
+    // 合計超過を抑止
+    const others = this.editingCustomers.reduce((s, val, idx) => s + (idx === ci ? 0 : (Number(val) || 0)), 0);
+    const maxForCi = Math.max(0, (Number(row.quantity) || 0) - others);
+    if (v > maxForCi) this.editingCustomers[ci] = maxForCi;
+  }
+
+
+  // 保存：行データに反映して再計算
+  saveAllocation() {
+    if (this.selectedItemIndex == null) return;
+    const row = this.orders[0]?.items?.[this.selectedItemIndex];
+    if (!row) return;
+
+    // 合計が quantity を超えないようにバリデーション
+    const sum = this.editingCustomers.reduce((s, v) => s + (Number(v) || 0), 0);
+    if (sum > row.quantity) {
+      alert(`Assigned total (${sum}) exceeds quantity (${row.quantity}).`);
+      return;
+    }
+
+    row.customers = [...this.editingCustomers];
+
+    // 既存の再計算ロジックを呼ぶ
+    this.handleQuantityChange(row);
+    this.updateSubtotals();
+
+    this.allocationDialogVisible = false;
+    this.selectedItemIndex = null;
+  }
+
+  // 取消
+  cancelAllocation() {
+    this.allocationDialogVisible = false;
+    this.selectedItemIndex = null;
+  }
+
+  // （任意）ダイアログ内でも max を出したい場合のヘルパー
+  getMaxAssignableForDialog(ci: number): number {
+    if (this.selectedItemIndex == null) return 9999;
+    const row = this.orders[0]?.items?.[this.selectedItemIndex];
+    if (!row) return 9999;
+
+    const others = this.editingCustomers.reduce(
+      (s: number, v: number, idx: number) => s + (idx === ci ? 0 : (Number(v) || 0)),
+      0   // ★ これで s の型が number と確定
+    );
+    return row.quantity - others;
+  }
+
+  
+  
+  constructor(private orderService: OrderService) {}
+  
   ngOnInit() {
     if (typeof window !== 'undefined' && localStorage) {
       const savedOrders = localStorage.getItem('orders');
@@ -45,6 +211,20 @@ export class SplitViewComponent implements OnInit {
     this.updateCustomerColumns();
   }
 
+  rowClass = (row: any): string => {
+    if (!Array.isArray(row.customers)) return 'unallocated';
+
+    const sum = row.customers.reduce(
+      (sum: number, val: number) => sum + (Number(val) || 0),
+      0        // ★ 初期値を追加
+    );
+    const qty = Number(row.quantity) || 0;
+
+    if (sum === 0)  return 'unallocated';
+    if (sum < qty)  return 'partial';
+    if (sum === qty) return '';
+    return 'over';
+  };
 
   updateCustomerColumns() {
     // カスタマー列ラベル更新
@@ -144,5 +324,6 @@ export class SplitViewComponent implements OnInit {
       ? Math.round(total * 1.1 * 100) / 100
       : Math.round(total * 100) / 100;
   }
+
 
 }

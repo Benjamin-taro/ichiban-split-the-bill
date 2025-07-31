@@ -1,0 +1,7 @@
+.chip-on  { background: var(--primary-color, #2196f3); color:#fff; border:none; }
+.chip-off { background: #f0f0f0; color:#666; border:1px solid #ccc; }
+.chip-row { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+
+.unallocated td { background:#fff9c4; }
+.partial     td { background:#ffe0b2; }
+.over        td { background:#ffcccb; }
