@@ -90,7 +90,7 @@ label="Restart the Process"
 ></p-button>
 
 <p-dialog
-  header="Allocate: {{ selectedItemIndex!==null ? orders[0]?.items[selectedItemIndex]?.name : '' }}"
+  header="Allocate: {{ selectedItemIndex!==null ? orders[0]?.items[selectedItemIndex]?.name : '' }}  x {{ selectedItemIndex!==null ? orders[0]?.items[selectedItemIndex]?.quantity : '' }}"
   [(visible)]="allocationDialogVisible"
   [modal]="true"
   [dismissableMask]="true"
