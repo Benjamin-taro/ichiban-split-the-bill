@@ -30,7 +30,6 @@ export class ReviewComponent implements OnInit {
   private menuMap = new Map<string, number>();
   constructor(private http: HttpClient, private orderService: OrderService) {}
   checked: boolean = false;
-  applyMenuOnInit: boolean = true;
 
   ngOnInit() {
       if (typeof window !== 'undefined') {
@@ -133,7 +132,7 @@ export class ReviewComponent implements OnInit {
 // 全件更新（ngOnInit から呼ぶ）
   private updatePricesFromMenu(): void {
     const items = this.orders[0]?.items || [];
-    for (const it of items) this.applyMenuPrice(it, this.applyMenuOnInit);
+    for (const it of items) this.applyMenuPrice(it);
     this.saveToLocalStorage();
   }
 
