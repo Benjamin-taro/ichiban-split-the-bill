@@ -121,6 +121,7 @@ label="Restart the Process"
       pButton
       *ngFor="let customer of customerLabels; let ci = index"
       [label]="customer"
+      class="chip-btn"
       (click)="toggleCustomer(ci)"
       [ngClass]="selected[ci] ? 'chip-on' : 'chip-off'">
     </button>
