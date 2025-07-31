@@ -1,101 +1,106 @@
 <!-- review.component.html -->
 <h2>This is the review page</h2>
 
+<ng-container *ngIf="orders[0]?.items as items">
+  <p-table
+    [value]="items"
+    [tableStyle]="{ 'min-width': '50rem' }"
+    editable="true"
+  >
+    <ng-template pTemplate="header">
+      <tr>
+        <th>Item</th>
+        <th>Quantity</th>
+        <th>Price per Item (£)</th>
+        <th>Subtotal (£)</th>
+          <th style="width: 4rem;"></th>
+        </tr>
+      </ng-template>
+      
+    <ng-template pTemplate="body" let-rowData let-editing="editing" let-ri="rowIndex">
+      <tr>
+        <!-- Item name -->
+        <td pEditableColumn>
+          <p-cellEditor>
+            <ng-template pTemplate="input">
+              <input pInputText [(ngModel)]="rowData.name" (ngModelChange)="updatePriceForItem(ri)" />
+            </ng-template>
+            <ng-template pTemplate="output">
+              {{ rowData.name }}
+            </ng-template>
+          </p-cellEditor>
+        </td>
 
-<p-table *ngIf="orders[0]?.items" [value]="orders[0]?.items" [tableStyle]="{ 'min-width': '50rem' }" editable="true">
-  <ng-template pTemplate="header">
-    <tr>
-      <th>Item</th>
-      <th>Quantity</th>
-      <th>Price per Item (£)</th>
-      <th>Subtotal (£)</th>
-      <th style="width: 4rem;"></th>
-    </tr>
-  </ng-template>
-  
-  <ng-template pTemplate="body" let-rowData let-editing="editing" let-ri="rowIndex">
-    <tr>
-      <!-- Item name -->
-      <td pEditableColumn>
-        <p-cellEditor>
-          <ng-template pTemplate="input">
-            <input pInputText [(ngModel)]="rowData.name" (ngModelChange)="updatePriceForItem(ri)" />
-          </ng-template>
-          <ng-template pTemplate="output">
-            {{ rowData.name }}
-          </ng-template>
-        </p-cellEditor>
-      </td>
-
-      <!-- Quantity -->
-      <td pEditableColumn>
-        <p-cellEditor>
-          <ng-template pTemplate="input">
-            <p-inputNumber
+        <!-- Quantity -->
+        <td pEditableColumn>
+          <p-cellEditor>
+            <ng-template pTemplate="input">
+              <p-inputNumber
               [(ngModel)]="rowData.quantity"
-              [min]="1"
-              [max]="100"
-              (ngModelChange)="onQuantityChange(ri)"
-            />
-          </ng-template>
-          <ng-template pTemplate="output">
-            {{ rowData.quantity }}
-          </ng-template>
-        </p-cellEditor>
-      </td>
+                [min]="1"
+                [max]="100"
+                (ngModelChange)="onQuantityChange(ri)"
+              />
+            </ng-template>
+            <ng-template pTemplate="output">
+              {{ rowData.quantity }}
+            </ng-template>
+          </p-cellEditor>
+        </td>
+        
+        <!-- Price per Item -->
+        <td pEditableColumn>
+          <p-cellEditor>
+            <ng-template pTemplate="input">
+              <p-inputNumber
+                [(ngModel)]="rowData.price"
+                [mode]="'decimal'"
+                [minFractionDigits]="2"
+                [maxFractionDigits]="2"
+                [prefix]="'£'"
+                (ngModelChange)="onUnitPriceChange(ri)"
+              />
+            </ng-template>
+            <ng-template pTemplate="output">
+              {{ rowData.price | currency:'GBP' }}
+            </ng-template>
+          </p-cellEditor>
+        </td>
 
-      <!-- Price per Item -->
-      <td pEditableColumn>
-        <p-cellEditor>
-          <ng-template pTemplate="input">
-            <p-inputNumber
-              [(ngModel)]="rowData.price"
-              [mode]="'decimal'"
-              [minFractionDigits]="2"
-              [maxFractionDigits]="2"
-              [prefix]="'£'"
-              (ngModelChange)="onUnitPriceChange(ri)"
-            />
-          </ng-template>
-          <ng-template pTemplate="output">
-            {{ rowData.price | currency:'GBP' }}
-          </ng-template>
-        </p-cellEditor>
-      </td>
+        <!-- Subtotal -->
+        <td pEditableColumn>
+          <p-cellEditor>
+            <ng-template pTemplate="input">
+              <p-inputNumber
+                [(ngModel)]="rowData.subtotal"
+                [mode]="'decimal'"
+                [minFractionDigits]="2"
+                [maxFractionDigits]="2"
+                [prefix]="'£'"
+                (ngModelChange)="onSubtotalChange(ri)"
+              />
+            </ng-template>
+            <ng-template pTemplate="output">
+              {{ rowData.subtotal | currency:'GBP' }}
+            </ng-template>
+          </p-cellEditor>
+        </td>
 
-      <!-- Subtotal -->
-      <td pEditableColumn>
-        <p-cellEditor>
-          <ng-template pTemplate="input">
-            <p-inputNumber
-              [(ngModel)]="rowData.subtotal"
-              [mode]="'decimal'"
-              [minFractionDigits]="2"
-              [maxFractionDigits]="2"
-              [prefix]="'£'"
-              (ngModelChange)="onSubtotalChange(ri)"
-            />
-          </ng-template>
-          <ng-template pTemplate="output">
-            {{ rowData.subtotal | currency:'GBP' }}
-          </ng-template>
-        </p-cellEditor>
-      </td>
-
-      <!-- Delete button -->
-      <td>
-        <button
-          pButton
-          icon="pi pi-trash"
-          class="p-button-danger p-button-sm"
-          (click)="removeRow(ri)"
-          type="button"
-          aria-label="Delete"
-        ></button>
-      </td>
-    </tr>
-  </ng-template>
-</p-table>
+        <!-- Delete button -->
+        <td>
+          <button
+            pButton
+            icon="pi pi-trash"
+            class="p-button-danger p-button-sm"
+            (click)="removeRow(ri)"
+            type="button"
+            aria-label="Delete"
+            ></button>
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</ng-container>
 
 <div style="margin-top: 1rem;">
   <button

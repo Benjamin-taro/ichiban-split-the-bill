@@ -1,122 +1,143 @@
-// review.component.ts
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, AfterViewInit, inject, PLATFORM_ID } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { ImageModule } from 'primeng/image';
 import { TableModule } from 'primeng/table';
 import { HttpClient } from '@angular/common/http';
-import { CommonModule } from '@angular/common';
-import { log } from 'console';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { FormsModule } from '@angular/forms';
 import { OrderService } from '../shared/order.service';
 import { CheckboxModule } from 'primeng/checkbox';
 import { firstValueFrom } from 'rxjs';
-import { environment } from '../../environments/environment'; // 環境変数のインポート
+import { environment } from '../../environments/environment';
 
+type LineItem = {
+  id?: string;
+  name: string;
+  quantity: number;
+  price: number;       // 単価（編集可）
+  subtotal?: number;   // 小計（編集可：編集時は→ price = subtotal / qty）
+  expectedPrice?: number;
+  expectedSubtotal?: number;
+  valid?: boolean;
+  manualEdited?: boolean;
+};
 
+type Order = {
+  items: LineItem[];
+  total?: number;
+  service_charge_10_percent: boolean;
+};
 
 @Component({
   selector: 'app-review',
   standalone: true,
-  imports: [ButtonModule, ImageModule, RouterModule, TableModule, CommonModule, InputTextModule, InputNumberModule, FormsModule, CheckboxModule],
+  imports: [
+    ButtonModule, ImageModule, RouterModule, TableModule, CommonModule,
+    InputTextModule, InputNumberModule, FormsModule, CheckboxModule
+  ],
   templateUrl: './review.component.html',
   styleUrls: ['./review.component.css']
 })
-
-export class ReviewComponent implements OnInit {
-  orders: any[] = [];
+export class ReviewComponent implements OnInit, AfterViewInit {
+  orders: Order[] = [];
   private menuMap = new Map<string, number>();
+
+  // SSR / 初期レンダー制御
+  private platformId = inject(PLATFORM_ID);
+  isBrowser = isPlatformBrowser(this.platformId);
+  private hydrated = false;
+
   constructor(private http: HttpClient, private orderService: OrderService) {}
-  checked: boolean = false;
 
   ngOnInit() {
-      if (typeof window !== 'undefined') {
-        const reloaded = localStorage.getItem('review-page-reloaded');
-        if (!reloaded) {
-          localStorage.setItem('review-page-reloaded', 'true');
-          location.reload(); // 強制リロード
-          return; // ここで止めておく
-        }
+    // ①（任意）あなたの1回リロードハックはブラウザのみで実行
+    if (this.isBrowser) {
+      const reloaded = localStorage.getItem('review-page-reloaded');
+      if (!reloaded) {
+        localStorage.setItem('review-page-reloaded', 'true');
+        location.reload();
+        return;
       }
-      this.orders = this.orderService.getOrders();
-      if (!this.orders || this.orders.length === 0) {
-        this.orders = [{
-          items: [],
-          total: 0,
-          service_charge_10_percent: false
-        }];
-      } else if (this.orders[0].service_charge_10_percent === undefined) {
-        this.orders[0].service_charge_10_percent = false;
-      }
+    }
 
-      this.migrateItemsSchema();
+    // ② Order の初期化
+    const fromSvc = this.orderService.getOrders() as Order[] | undefined;
+    this.orders = (fromSvc && fromSvc.length ? fromSvc : [{
+      items: [],
+      total: 0,
+      service_charge_10_percent: false
+    }]);
 
-      this.loadMenuJson().then(() => {
-          this.updatePricesFromMenu();
-      });
+    if (this.orders[0].service_charge_10_percent === undefined) {
+      this.orders[0].service_charge_10_percent = false;
+    }
 
-      if (!this.orders || this.orders.length === 0) {
-        console.warn('No order data available!');
-      } else {
-        console.log('Loaded orders from service:', this.orders);
-      }
+    // ③ 旧スキーマ → 「小計中心」のスキーマに移行
+    this.migrateItemsSchema();
+
+    // ④ menu.json 読み込み → 起動時は期待値だけ更新（実値は上書きしない）
+    this.loadMenuJson(/*preferAssetsOnServer*/ !this.isBrowser).then(() => {
+      this.updatePricesFromMenu(true);
+    });
   }
+
+  ngAfterViewInit() {
+    // 初期レンダーで PrimeNG の ngModelChange が飛ぶのを避ける
+    setTimeout(() => { this.hydrated = true; }, 0);
+  }
+
+  // ──────── Utils ────────
   private normalize(s: any): string {
-    return String(s ?? '')
-      .trim()
-      .toLowerCase()
-      .replace(/\s+/g, ' ');
+    return String(s ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
   }
-
   private round2(x: number): number {
     return Math.round((Number(x) + Number.EPSILON) * 100) / 100;
   }
-// ========= 追加: 既存データを「小計」中心に移行 =========
+
+  // 既存データを「小計中心」に移行：OCRの price は小計とみなす
   private migrateItemsSchema(): void {
-    const items = this.orders[0]?.items || [];
+    const items = this.orders[0]?.items ?? [];
     for (const it of items) {
-      // quantity は最低 1
       if (typeof it?.quantity !== 'number' || it.quantity < 1) it.quantity = 1;
 
-      // subtotal が未定義なら、既存の price を「レシート小計」とみなして移す
       if (typeof it?.subtotal !== 'number') {
+        // 旧データ：price をレシート小計として扱う
         if (typeof it?.price === 'number') {
           it.subtotal = this.round2(it.price);
-          it.price = this.round2(it.subtotal / it.quantity); // 単価を再計算
+          it.price = this.round2(it.subtotal / it.quantity);
         } else {
           it.subtotal = 0;
           it.price = 0;
         }
       } else {
-        // subtotal があるのに単価がない場合は計算
         if (typeof it?.price !== 'number' || isNaN(it.price)) {
           it.price = this.round2(it.subtotal / it.quantity);
         }
       }
 
-      // 期待値の入れ先を確保
+      // 期待値フィールドの初期化
       if (typeof it.expectedPrice !== 'number') it.expectedPrice = undefined;
       if (typeof it.expectedSubtotal !== 'number') it.expectedSubtotal = undefined;
     }
     this.saveToLocalStorage();
   }
 
-  private async loadMenuJson(): Promise<void> {
-    const url = `${environment.apiBaseUrl}/menu.json`;
+  private async loadMenuJson(preferAssetsOnServer = false): Promise<void> {
     let mapping: Record<string, number> | null = null;
-
     try {
-      mapping = await firstValueFrom(
-        this.http.get<Record<string, number>>(url)
-      );
+      if (preferAssetsOnServer) {
+        mapping = await firstValueFrom(this.http.get<Record<string, number>>('assets/menu.json'));
+      } else {
+        const url = `${environment.apiBaseUrl}/menu.json`;
+        mapping = await firstValueFrom(this.http.get<Record<string, number>>(url));
+      }
     } catch (e) {
-      console.warn('[menu] API取得に失敗。assets/menu.json にフォールバックします。', e);
+      console.warn('[menu] API取得失敗、assets/menu.jsonへフォールバック', e);
       try {
-        mapping = await firstValueFrom(
-          this.http.get<Record<string, number>>('assets/menu.json')
-        );
+        mapping = await firstValueFrom(this.http.get<Record<string, number>>('assets/menu.json'));
       } catch (e2) {
         console.error('[menu] フォールバックも失敗', e2);
         mapping = {};
@@ -129,38 +150,39 @@ export class ReviewComponent implements OnInit {
     }
   }
 
-// 全件更新（ngOnInit から呼ぶ）
-  private updatePricesFromMenu(): void {
-    const items = this.orders[0]?.items || [];
-    for (const it of items) this.applyMenuPrice(it);
+  // 起動時 or 任意タイミングで「期待値だけ」更新
+  private updatePricesFromMenu(commit: boolean): void {
+    const items = this.orders[0]?.items ?? [];
+    for (const it of items) this.applyMenuPrice(it, commit);
     this.saveToLocalStorage();
   }
 
-  // 1行だけ更新（編集時に呼ぶ）
+  // Item名編集時に呼ぶ（commit = true）
   updatePriceForItem(index: number): void {
     const it = this.orders[0]?.items?.[index];
     if (!it) return;
-    this.applyMenuPrice(it, true);
+    this.applyMenuPrice(it, true);   // ← 実値に反映（price のみ）
     this.saveToLocalStorage();
   }
 
-  // ▼ commit=true のときだけ、実際の price/subtotal を上書きする
-  private applyMenuPrice(it: any, commit = false) {
+  /**
+   * menu.json の反映
+   * commit=false: 期待値のみ更新
+   * commit=true : 実値（price のみ）も更新。subtotal は触らない（レシートを尊重）
+   */
+  private applyMenuPrice(it: LineItem, commit = false) {
     const key = this.normalize(it.name);
     const menuPrice = this.menuMap.get(key);
-    console.log('[name edit]', it.name, '->', key, 'found:', menuPrice);
 
     if (menuPrice !== undefined) {
       it.valid = true;
       it.expectedPrice = this.round2(menuPrice);
-      it.expectedSubtotal = this.round2((it.quantity || 1) * menuPrice);
+      // 必要なら expectedSubtotal も運用
+      // it.expectedSubtotal = this.round2((it.quantity || 1) * menuPrice);
 
       if (commit) {
-        // Item名編集からの呼び出し時のみ、実値を更新
-        it.price = this.round2(menuPrice);
-        it.subtotal = this.round2(it.price * (it.quantity || 1));
-        // 任意: 直前に適用したキーを保持して不要な再適用を回避したい場合
-        // it._lastAppliedKey = key;
+        it.price = this.round2(menuPrice); // 単価のみ更新
+        it.subtotal = this.round2(it.price * (it.quantity || 1)); // 小計は qty に応じて更新
       }
     } else {
       it.valid = false;
@@ -169,86 +191,80 @@ export class ReviewComponent implements OnInit {
     }
   }
 
-    // ========= 相互更新ロジック（編集時） =========
+  // ──────── 編集ハンドラ（初期レンダーは無視） ────────
   onUnitPriceChange(index: number): void {
+    if (!this.hydrated) return;
     const it = this.orders[0]?.items?.[index];
     if (!it) return;
     it.quantity = Math.max(1, Number(it.quantity) || 1);
     it.price = Number(it.price) || 0;
     it.subtotal = this.round2(it.price * it.quantity);
+    it.manualEdited = true;
     this.saveToLocalStorage();
   }
 
   onSubtotalChange(index: number): void {
+    if (!this.hydrated) return;
     const it = this.orders[0]?.items?.[index];
     if (!it) return;
     it.quantity = Math.max(1, Number(it.quantity) || 1);
     it.subtotal = Number(it.subtotal) || 0;
     it.price = this.round2(it.subtotal / it.quantity);
+    it.manualEdited = true;
     this.saveToLocalStorage();
   }
 
   onQuantityChange(index: number): void {
+    if (!this.hydrated) return;
     const it = this.orders[0]?.items?.[index];
     if (!it) return;
     it.quantity = Math.max(1, Number(it.quantity) || 1);
     it.price = Number(it.price) || 0;
     it.subtotal = this.round2(it.price * it.quantity);
-    // 期待小計も数量に応じて更新
     if (typeof it.expectedPrice === 'number') {
       it.expectedSubtotal = this.round2(it.expectedPrice * it.quantity);
     }
     this.saveToLocalStorage();
   }
 
+  // 合計は「subtotal の合計」を優先（なければ price*qty をフォールバック）
   calcTotal(): number {
-    const items: { price: number; quantity: number }[] = this.orders[0]?.items || [];
-    this.saveToLocalStorage();
-    const total = items.reduce((sum: number, item: { price: number; quantity: number }) => {
-      return sum + item.price * item.quantity;
+    const items = this.orders[0]?.items ?? [];
+    const sum = items.reduce((acc, it) => {
+      const sub = (typeof it.subtotal === 'number')
+        ? it.subtotal
+        : (Number(it.price) || 0) * (Number(it.quantity) || 0);
+      return acc + sub;
     }, 0);
-
-    return this.orders[0]?.service_charge_10_percent
-      ? Math.round(total * 1.1 * 100) / 100
-      : Math.round(total * 100) / 100;
+    const total = this.round2(sum);
+    return this.orders[0]?.service_charge_10_percent ? this.round2(total * 1.1) : total;
   }
-
-
 
   addRow() {
     if (!this.orders || this.orders.length === 0) {
-      this.orders = [{
-        items: [],
-        total: 0,
-        service_charge_10_percent: false
-      }];
+      this.orders = [{ items: [], total: 0, service_charge_10_percent: false }];
     }
-
     this.orders[0].items.push({
       name: 'hello ichiban!!',
       quantity: 1,
       price: 0,
+      subtotal: 0,
       valid: true,
-      expectedPrice: 0
+      expectedPrice: undefined,
+      expectedSubtotal: undefined
     });
+    this.saveToLocalStorage();
   }
-
 
   removeRow(index: number) {
     this.orders[0]?.items.splice(index, 1);
+    this.saveToLocalStorage();
   }
 
   saveToLocalStorage() {
-    if (typeof window !== 'undefined' && localStorage) {
+    if (this.isBrowser) {
       localStorage.setItem('orders', JSON.stringify(this.orders));
-      console.log('Saved to localStorage:', this.orders);
-    } else {
-      console.warn('localStorage is not available (likely SSR environment)');
+      // console.debug('Saved to localStorage:', this.orders);
     }
   }
-
-
-
 }
-
-
