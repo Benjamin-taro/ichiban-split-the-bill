@@ -145,10 +145,13 @@ label="Restart the Process"
       <span class="alloc-name">{{ customer }}</span>
       <p-inputNumber
         [(ngModel)]="editingCustomers[ci]"
+        [mode]="'decimal'"          
         [min]="0"
         [max]="getMaxAssignableForDialog(ci)"
         [showButtons]="true"
         [step]="0.01"
+        [minFractionDigits]="0"
+        [maxFractionDigits]="2"
         [useGrouping]="false"
         inputStyleClass="alloc-input"
         (ngModelChange)="onDialogInputChange(ci)">
