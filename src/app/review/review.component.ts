@@ -30,6 +30,7 @@ export class ReviewComponent implements OnInit {
   private menuMap = new Map<string, number>();
   constructor(private http: HttpClient, private orderService: OrderService) {}
   checked: boolean = false;
+  applyMenuOnInit: boolean = true;
 
   ngOnInit() {
       if (typeof window !== 'undefined') {
@@ -51,6 +52,8 @@ export class ReviewComponent implements OnInit {
         this.orders[0].service_charge_10_percent = false;
       }
 
+      this.migrateItemsSchema();
+
       this.loadMenuJson().then(() => {
           this.updatePricesFromMenu();
       });
@@ -66,6 +69,39 @@ export class ReviewComponent implements OnInit {
       .trim()
       .toLowerCase()
       .replace(/\s+/g, ' ');
+  }
+
+  private round2(x: number): number {
+    return Math.round((Number(x) + Number.EPSILON) * 100) / 100;
+  }
+// ========= 追加: 既存データを「小計」中心に移行 =========
+  private migrateItemsSchema(): void {
+    const items = this.orders[0]?.items || [];
+    for (const it of items) {
+      // quantity は最低 1
+      if (typeof it?.quantity !== 'number' || it.quantity < 1) it.quantity = 1;
+
+      // subtotal が未定義なら、既存の price を「レシート小計」とみなして移す
+      if (typeof it?.subtotal !== 'number') {
+        if (typeof it?.price === 'number') {
+          it.subtotal = this.round2(it.price);
+          it.price = this.round2(it.subtotal / it.quantity); // 単価を再計算
+        } else {
+          it.subtotal = 0;
+          it.price = 0;
+        }
+      } else {
+        // subtotal があるのに単価がない場合は計算
+        if (typeof it?.price !== 'number' || isNaN(it.price)) {
+          it.price = this.round2(it.subtotal / it.quantity);
+        }
+      }
+
+      // 期待値の入れ先を確保
+      if (typeof it.expectedPrice !== 'number') it.expectedPrice = undefined;
+      if (typeof it.expectedSubtotal !== 'number') it.expectedSubtotal = undefined;
+    }
+    this.saveToLocalStorage();
   }
 
   private async loadMenuJson(): Promise<void> {
@@ -97,7 +133,7 @@ export class ReviewComponent implements OnInit {
 // 全件更新（ngOnInit から呼ぶ）
   private updatePricesFromMenu(): void {
     const items = this.orders[0]?.items || [];
-    for (const it of items) this.applyMenuPrice(it);
+    for (const it of items) this.applyMenuPrice(it, this.applyMenuOnInit);
     this.saveToLocalStorage();
   }
 
@@ -105,24 +141,66 @@ export class ReviewComponent implements OnInit {
   updatePriceForItem(index: number): void {
     const it = this.orders[0]?.items?.[index];
     if (!it) return;
-    this.applyMenuPrice(it);
+    this.applyMenuPrice(it, true);
     this.saveToLocalStorage();
   }
 
-  // 共通ロジック
-  private applyMenuPrice(it: any) {
+  // ▼ commit=true のときだけ、実際の price/subtotal を上書きする
+  private applyMenuPrice(it: any, commit = false) {
     const key = this.normalize(it.name);
     const menuPrice = this.menuMap.get(key);
     console.log('[name edit]', it.name, '->', key, 'found:', menuPrice);
+
     if (menuPrice !== undefined) {
-      it.price = menuPrice;
-      it.expectedPrice = menuPrice;
       it.valid = true;
+      it.expectedPrice = this.round2(menuPrice);
+      it.expectedSubtotal = this.round2((it.quantity || 1) * menuPrice);
+
+      if (commit) {
+        // Item名編集からの呼び出し時のみ、実値を更新
+        it.price = this.round2(menuPrice);
+        it.subtotal = this.round2(it.price * (it.quantity || 1));
+        // 任意: 直前に適用したキーを保持して不要な再適用を回避したい場合
+        // it._lastAppliedKey = key;
+      }
     } else {
       it.valid = false;
+      it.expectedPrice = undefined;
+      it.expectedSubtotal = undefined;
     }
   }
 
+    // ========= 相互更新ロジック（編集時） =========
+  onUnitPriceChange(index: number): void {
+    const it = this.orders[0]?.items?.[index];
+    if (!it) return;
+    it.quantity = Math.max(1, Number(it.quantity) || 1);
+    it.price = Number(it.price) || 0;
+    it.subtotal = this.round2(it.price * it.quantity);
+    this.saveToLocalStorage();
+  }
+
+  onSubtotalChange(index: number): void {
+    const it = this.orders[0]?.items?.[index];
+    if (!it) return;
+    it.quantity = Math.max(1, Number(it.quantity) || 1);
+    it.subtotal = Number(it.subtotal) || 0;
+    it.price = this.round2(it.subtotal / it.quantity);
+    this.saveToLocalStorage();
+  }
+
+  onQuantityChange(index: number): void {
+    const it = this.orders[0]?.items?.[index];
+    if (!it) return;
+    it.quantity = Math.max(1, Number(it.quantity) || 1);
+    it.price = Number(it.price) || 0;
+    it.subtotal = this.round2(it.price * it.quantity);
+    // 期待小計も数量に応じて更新
+    if (typeof it.expectedPrice === 'number') {
+      it.expectedSubtotal = this.round2(it.expectedPrice * it.quantity);
+    }
+    this.saveToLocalStorage();
+  }
 
   calcTotal(): number {
     const items: { price: number; quantity: number }[] = this.orders[0]?.items || [];

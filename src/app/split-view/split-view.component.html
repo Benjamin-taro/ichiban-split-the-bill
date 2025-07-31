@@ -14,8 +14,9 @@
   <ng-template pTemplate="header">
     <tr>
       <th>Item</th>
-      <th>Price per Item (£)</th>
       <th>Quantity</th>
+      <th>Price per Item (£)</th>
+      <th>Subtotal (£)</th>
       <th *ngFor="let customer of customerLabels">{{ customer }}</th>
     </tr>
   </ng-template>
@@ -24,10 +25,12 @@
     <tr>
       <!-- Item name -->
       <td>{{ rowData.name }}</td>
-      <!-- Price -->
-      <td>£{{ rowData.price }}</td>
       <!-- Quantity -->
       <td>{{ rowData.quantity }}</td>
+      <!-- Price -->
+      <td>£{{ rowData.price }}</td>
+      <!-- Subtotal -->
+      <td>£{{ rowData.subtotal }}</td>
       <td *ngFor="let customer of customerLabels; let ci = index" style="width: 50px;">
       <input
         type="number"

@@ -6,8 +6,9 @@
   <ng-template pTemplate="header">
     <tr>
       <th>Item</th>
-      <th>Price per Item (£)</th>
       <th>Quantity</th>
+      <th>Price per Item (£)</th>
+      <th>Subtotal (£)</th>
       <th style="width: 4rem;"></th>
     </tr>
   </ng-template>
@@ -26,29 +27,61 @@
         </p-cellEditor>
       </td>
 
-      <!-- Price -->
-      <td pEditableColumn>
-        <p-cellEditor>
-          <ng-template pTemplate="input">
-            <p-inputNumber [(ngModel)]="rowData.price" [mode]="'decimal'" [minFractionDigits]="2" [maxFractionDigits]="2" [prefix]="'£'" />
-          </ng-template>
-          <ng-template pTemplate="output">
-            £{{ rowData.price }}
-          </ng-template>
-        </p-cellEditor>
-      </td>
-
       <!-- Quantity -->
       <td pEditableColumn>
         <p-cellEditor>
           <ng-template pTemplate="input">
-            <p-inputNumber [(ngModel)]="rowData.quantity" [min]="1" [max]="100" />
+            <p-inputNumber
+              [(ngModel)]="rowData.quantity"
+              [min]="1"
+              [max]="100"
+              (ngModelChange)="onQuantityChange(ri)"
+            />
           </ng-template>
           <ng-template pTemplate="output">
             {{ rowData.quantity }}
           </ng-template>
         </p-cellEditor>
       </td>
+
+      <!-- Price per Item -->
+      <td pEditableColumn>
+        <p-cellEditor>
+          <ng-template pTemplate="input">
+            <p-inputNumber
+              [(ngModel)]="rowData.price"
+              [mode]="'decimal'"
+              [minFractionDigits]="2"
+              [maxFractionDigits]="2"
+              [prefix]="'£'"
+              (ngModelChange)="onUnitPriceChange(ri)"
+            />
+          </ng-template>
+          <ng-template pTemplate="output">
+            {{ rowData.price | currency:'GBP' }}
+          </ng-template>
+        </p-cellEditor>
+      </td>
+
+      <!-- Subtotal -->
+      <td pEditableColumn>
+        <p-cellEditor>
+          <ng-template pTemplate="input">
+            <p-inputNumber
+              [(ngModel)]="rowData.subtotal"
+              [mode]="'decimal'"
+              [minFractionDigits]="2"
+              [maxFractionDigits]="2"
+              [prefix]="'£'"
+              (ngModelChange)="onSubtotalChange(ri)"
+            />
+          </ng-template>
+          <ng-template pTemplate="output">
+            {{ rowData.subtotal | currency:'GBP' }}
+          </ng-template>
+        </p-cellEditor>
+      </td>
+
       <!-- Delete button -->
       <td>
         <button
