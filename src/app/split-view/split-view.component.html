@@ -116,23 +116,28 @@ label="Restart the Process"
   </div>
 
   <!-- 顧客チップ（ON/OFF） -->
-  <div class="chip-row" *ngIf="allocationMode==='auto'">
+  <div
+    class="chip-row"
+    *ngIf="allocationMode==='auto'"      
+    [class.auto-mode]="true"
+  >
+    <!-- 個別チップ -->
     <button
       pButton
       *ngFor="let customer of customerLabels; let ci = index"
-      [label]="customer"
       class="chip-btn"
-      (click)="toggleCustomer(ci)"
-      [ngClass]="selected[ci] ? 'chip-on' : 'chip-off'">
+      [ngClass]="selected[ci] ? 'chip-on' : 'chip-off'"
+      [label]="customer"
+      (click)="toggleCustomer(ci)">
     </button>
-    <button pButton label="Select All"
-          class="p-button-sm p-button-secondary"
-          (click)="selectAll()"></button>
 
-    <button pButton label="Unselect All"
-            class="p-button-sm p-button-secondary"
+    <!-- ALL / UNSELECT（任意） -->
+    <button pButton label="Select All"   class="p-button-sm p-button-secondary"
+            (click)="selectAll()"></button>
+    <button pButton label="Unselect All" class="p-button-sm p-button-secondary"
             (click)="unselectAll()"></button>
   </div>
+
 
   <!-- 数量入力（customでもautoでも表示。入力したらcustomへ） -->
   <div class="alloc-grid">

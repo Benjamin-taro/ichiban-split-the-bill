@@ -1,6 +1,43 @@
 .chip-on  { background: var(--primary-color, #2196f3); color:#fff; border:none; }
 .chip-off { background: #f0f0f0; color:#666; border:1px solid #ccc; }
 .chip-row { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+/* 共通ボタン見た目 */
+.chip-btn {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: .9rem;
+  transition: background-color .15s;
+}
+
+/* ===== Even split (auto-mode) カラー ===== */
+.auto-mode .chip-on  { background:#1976d2; color:#fff; border:none; }
+.auto-mode .chip-off { background:#e9ecef; color:#495057; border:1px solid #ced4da; }
+
+/* ===== Custom (custom-mode) カラー ===== */
+.custom-mode .chip-on  { background:#ff9800; color:#fff; border:none; }
+.custom-mode .chip-off { background:#fff3e0; color:#795548; border:1px solid #ffcc80; }
+
+/* ------ ホバー／タップ時のオーバーレイ ------ */
+/*   未選択だけ “うっすら” オーバーレイ。           */
+/*   選択済みは変化させない                       */
+.chip-btn::after {
+  content:"";
+  position:absolute; inset:0;
+  background:rgba(0,0,0,.08);  /* 微妙に暗くする */
+  opacity:0; transition:opacity .15s;
+}
+
+.auto-mode .chip-off:hover::after,
+.custom-mode .chip-off:hover::after,
+.auto-mode .chip-off:active::after,
+.custom-mode .chip-off:active::after { opacity:1; }
+
+/* 選択済みにはオーバーレイを出さない */
+.chip-on:hover::after,
+.chip-on:active::after { opacity:0; }
+
 
 .unallocated td { background:#fff9c4; }
 .partial     td { background:#ffe0b2; }
