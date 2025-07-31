@@ -1,3 +1,5 @@
+/* ===== 既存の入力スタイル（そのまま） ===== */
+
 /* 共通：通常時は下線だけ */
 input, .p-inputnumber input {
   border: none;
@@ -12,4 +14,94 @@ input:focus, .p-inputnumber input:focus {
   border: 2px solid #007ad9;
   box-shadow: 0 0 4px rgba(0, 122, 217, 0.5);
   border-radius: 4px;
+}
+
+/* ===== ここからレスポンシブ追加分 ===== */
+
+/* 1) フルード・タイポ＆スペーシングのスケール */
+:root {
+  /* 画面幅に応じて 14px〜18px を自動調整 */
+  --font-base: clamp(14px, 1.2vw, 18px);
+
+  /* 見出しのスケール（必要に応じて微調整） */
+  --font-h1: clamp(24px, 4vw, 36px);
+  --font-h2: clamp(18px, 2.8vw, 28px);
+
+  /* 余白スケール */
+  --space-1: clamp(4px, 0.6vw, 8px);
+  --space-2: clamp(8px, 1.2vw, 14px);
+  --space-3: clamp(12px, 2vw, 24px);
+
+  /* テーブルの最小横幅（p-tableのinlineよりこちらを使うなら適用） */
+  --table-min-w: 40rem; /* 例: 640px 相当。狭くしたい/広げたい場合は変更 */
+}
+
+html, body {
+  font-size: var(--font-base);
+}
+
+/* 見出しをフルードに */
+h1 { font-size: var(--font-h1); margin: var(--space-2) 0 var(--space-3); }
+h2 { font-size: var(--font-h2); margin: var(--space-2) 0; }
+
+/* 2) テーブルのレスポンシブ改善 */
+.p-datatable-wrapper {
+  overflow-x: auto;             /* 狭い画面で横スクロールを許可 */
+}
+
+/* ※テンプレ側の [tableStyle] で min-width を指定していなければ有効
+   （もし inline 最小幅を外したら、下で統一管理できます） */
+.p-datatable .p-datatable-table {
+  width: 100%;
+  min-width: var(--table-min-w);
+}
+
+/* ヘッダ＆セルのパディングを流動化 */
+.p-datatable .p-datatable-thead > tr > th,
+.p-datatable .p-datatable-tbody > tr > td {
+  padding: var(--space-1) var(--space-2);
+  line-height: 1.4;
+  white-space: normal;          /* ヘッダの長いラベルを折り返し可に */
+  word-break: break-word;
+}
+
+/* 3) 入力とボタンを幅いっぱいに＆可読サイズに */
+.p-inputnumber, .p-inputnumber input,
+input[pinputtext], input[type="text"] {
+  width: 100%;
+  font-size: 1em;               /* フルード基準に追従（= var(--font-base)） */
+  padding: calc(var(--space-1) * 0.75) var(--space-1);
+  box-sizing: border-box;
+}
+
+.p-button {
+  font-size: clamp(12px, 1.1vw, 16px);
+  padding: var(--space-1) var(--space-2);
+  line-height: 1.2;
+}
+
+/* 4) ブレークポイントでの細かい調整 */
+@media (max-width: 768px) {
+  /* 余白をやや詰める */
+  :root {
+    --space-1: clamp(4px, 1vw, 8px);
+    --space-2: clamp(6px, 1.6vw, 12px);
+    --space-3: clamp(10px, 2.4vw, 20px);
+  }
+
+  /* ボタンを縦積みにしたい場合（任意） */
+  .p-button { width: 100%; }
+}
+
+@media (max-width: 480px) {
+  /* さらにコンパクトに */
+  :root {
+    --table-min-w: 36rem; /* 例: 576px。もっと小さくするなら値を下げる */
+  }
+
+  /* セルのパディングを最小化 */
+  .p-datatable .p-datatable-thead > tr > th,
+  .p-datatable .p-datatable-tbody > tr > td {
+    padding: 6px 8px;
+  }
 }

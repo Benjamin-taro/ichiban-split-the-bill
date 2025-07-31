@@ -10,6 +10,16 @@
   (onBlur)="updateCustomerColumns()"
 />
 
+
+
+<h2>Subtotal for Each Customer (£):</h2>
+<ul>
+  <li *ngFor="let customer of customerLabels; let i = index"
+  style="font-size: 18px; margin-bottom: 0.5rem;">
+  {{ customer }}: £{{ subtotals[i] || 0 }}
+</li>
+</ul>
+
 <p-table [value]="orders[0]?.items" [tableStyle]="{ 'min-width': '50rem' }" editable="true">
   <ng-template pTemplate="header">
     <tr>
@@ -32,7 +42,7 @@
       <!-- Subtotal -->
       <td>£{{ rowData.subtotal }}</td>
       <td *ngFor="let customer of customerLabels; let ci = index" style="width: 50px;">
-      <input
+        <input
         type="number"
         [(ngModel)]="rowData.customers[ci]"
         [min]="0"
@@ -45,27 +55,19 @@
   </ng-template>
 </p-table>
 
-<h1>Total: {{ calcTotal() | currency:'GBP' }}</h1>
-
+<h2>Total: {{ calcTotal() | currency:'GBP' }}</h2>
 <div *ngIf="orders[0]">
   <p-checkbox
-    [(ngModel)]="orders[0].service_charge_10_percent"
-    binary="true"
+  [(ngModel)]="orders[0].service_charge_10_percent"
+  binary="true"
     inputId="sc"
     (onChange)="updateSubtotals()"
   ></p-checkbox>
-  <label for="sc" style="margin-left: 0.5rem;">Include 10% Service Charge</label>
+  <label for="sc" style="margin-left: 0.5rem; font-size: 20px;">Include 10% Service Charge</label>
 </div>
 
-<h3>Subtotal for Each Customer (£):</h3>
-<ul>
-  <li *ngFor="let customer of customerLabels; let i = index">
-    {{ customer }}: £{{ subtotals[i] || 0 }}
-  </li>
-</ul>
-
 <p-button
-  label="Restart the Process"
+label="Restart the Process"
   severity="secondary"
   routerLink="/"
   type="button"
